@@ -1,0 +1,104 @@
+collector:
+  mode: beat                                                  # supervised machines ship beats to this logstash collector
+  Machine_name: machine-collector
+  Accounts:
+    - username: root
+      password: roothAsAStr0ngP@ssw0rd
+  OS:
+    Type: linux:ubuntu
+    Version: "24.04"
+  Software:
+    - name: change_default_password
+    - name: logstash
+      project_name: "casinolimit"                            # customises the elasticsearch index name
+      beats: true                                            # receive beats on the default port 5044
+      beat_ssl: true                                         # TLS between beats and logstash
+      filebeat: true                                         # add filebeat parsing rules
+      file_output: false                                     # do not also write to a local file
+      elasticsearch: true                                    # forward parsed events to elasticsearch
+      elasticsearch_hosts:
+        - https://10.35.100.100:9200/                        # elasticsearch on the local supervisor
+      server_san:                                            # SANs so both collector interfaces are valid for the beats <-> logstash cert
+        - "DNS:machine-collector"
+        - "IP:10.35.100.55"                                  # casino_network interface
+        - "IP:10.135.100.55"                                 # intranet_network interface (so the intranet machine can ship beats)
+  Resources:
+    memory: 4096
+    cpus: 2
+  provision_after:
+    - machine-supervisor                                     # elasticsearch must be up before logstash ships to it
+
+supervisor:
+  Machine_name: machine-supervisor
+  mode: local                                                # provision a local Elastic supervisor (elasticsearch + kibana)
+  local-configuration:
+    Accounts:
+      - username: elastic
+        password: 3l@st1kP@ssw0rd!
+    OS:
+      Type: linux:ubuntu
+      Version: "24.04"
+    Software:
+      - name: change_default_password
+      - name: elasticsearch
+        logstash_host: machine-collector
+        # Bind/publish ES on the supervisor's casino_network interface (the one the
+        # collector reaches it through). Without this the role's 'optional' default
+        # leaves elastic_ip_address undefined on this multi-homed supervisor.
+        elasticsearch_subnet: "10.35.100.0/24"
+        # The auto-generated HTTPS cert only covers the default (public) interface +
+        # hostname. logstash connects to elasticsearch over the casino_network IP
+        # (10.35.100.100), so that IP must be in the cert SAN or logstash's TLS
+        # verification fails (beats then get connection-reset by backpressure).
+        # This IP is remapped alongside the others if kalisto reassigns the subnet.
+        elasticsearch_extra_ips:
+          - 10.35.100.100
+        elasticsearch_bootstrap_password: "Ye1x-Nf8lq-fnM07j-aA-Ki4Bys-i7ah-LLiIvwX"
+        generateca: true
+        elasticsearch_ca_filename: elastic-stack-ca.p12
+        elasticsearch_ca_password: "Elk-Ca-P4ssw0rd!"
+        elasticsearch_http_password: "Elk-Http-P4ssw0rd!"
+        elasticsearch_security_enabled: true
+        elasticsearch_https_enabled: true
+        elasticsearch_cert_propagation_hosts:
+          - machine-collector                                # push the generated CA/cert to the logstash collector
+      - name: kibana
+    Resources:
+      memory: 4096
+      cpus: 4
+
+supervised-machines:
+  # All four CasinoLimit attack machines ship beats to the collector.
+  machine-name-list:
+    - start
+    - meetingcam
+    - bastion
+    - intranet
+
+  # Default: casino_network machines (start, meetingcam, bastion) reach the collector
+  # on its casino_network interface (10.35.100.55).
+  sensor-default-configuration:
+    - name: packetbeat
+      logstash: true
+      logstash_hosts: 10.35.100.55
+    - name: filebeat
+      logstash: true
+      logstash_hosts: 10.35.100.55
+    - name: auditbeat
+      logstash: true
+      logstash_hosts: 10.35.100.55
+
+  # The intranet machine only sits on intranet_network, so it ships to the collector's
+  # intranet_network interface (10.135.100.55).
+  except-for:
+    - machine: intranet
+      sensors:
+        - name: packetbeat
+          logstash: true
+          logstash_hosts: 10.135.100.55
+        - name: filebeat
+          logstash: true
+          logstash_hosts: 10.135.100.55
+        - name: auditbeat
+          logstash: true
+          logstash_hosts: 10.135.100.55

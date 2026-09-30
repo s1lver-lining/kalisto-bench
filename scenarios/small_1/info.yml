@@ -1,0 +1,15 @@
+Title: small_1
+Description: Random scenario 1 (bash-history creds -> SSH -> sudo priv-esc) with an Elastic supervision stack added.
+Tags:
+- Benchmark
+- Random
+- Supervision
+Long: |
+  Benchmark member. Based on random_scenario_1: the attacker recovers machine-1
+  credentials from its own bash history, SSHes into machine-1 as user-1, then
+  escalates to root via sudo.
+
+  A local Elastic supervision stack is attached: machine-collector receives beats
+  from the supervised target machines (machine-1, machine-2) on subnet_64
+  (192.168.64.55) and forwards to elasticsearch on machine-supervisor
+  (192.168.64.100), whose Kibana is browsable on PUBLIC (192.168.56.12).

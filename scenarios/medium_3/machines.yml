@@ -1,0 +1,125 @@
+attacker-machine:
+  Accounts:
+  - username: attacker
+    password: attacker
+  Software:
+  - name: nmap
+  - name: dnssec_downgrade
+  - name: sshpass
+  - name: avahi
+  OS: &id001
+    Type: linux:ubuntu
+    Version: '24.04'
+sadalmelik:
+  Accounts:
+  - username: root
+    password: 37HyVaQX
+  - username: erwin
+    password: ekW9LctX
+  - username: hiro
+    password: b03rEMU6
+  - username: jalal
+    password: 4yTY6BzU
+  Software:
+  - name: nmap
+  - name: dnssec_downgrade
+  - name: sshpass
+  - name: avahi
+bayeux:
+  Accounts:
+  - username: root
+    password: 4xgciFnq
+  - username: janto
+    password: 9RBXO2tA
+  - username: kimani
+    password: G1yKwILA
+  - username: jalal
+    password: Lo5vR67b
+  Software:
+  - name: nmap
+  - name: dnssec_downgrade
+  - name: sshpass
+  - name: avahi
+  - name: react2shell
+    app_user: pirat
+    app_name: react2shell
+    app_port: 3000
+kaus:
+  Accounts:
+  - username: root
+    password: S3u9I5KK
+  - username: kurt
+    password: gTPnO1Kr
+  - username: janto
+    password: sheE2OEf
+  - username: jalal
+    password: wZeA5jbs
+  Software:
+  - name: nmap
+  - name: dnssec_downgrade
+  - name: sshpass
+  - name: avahi
+  - name: creds_stored_in_bash_history
+    history_user: root
+    history_message: sshpass -p 'ekW9LctX' ssh erwin@sadalmelik.local
+    history_seed_commands:
+    - ls -la
+    - cd ~
+    - cd ~/projects
+    - git status
+    - ls -la
+    - cd ~
+    - cd ~/projects
+    - git status
+    - vim main.py
+    - tail -n 50 /var/log/syslog
+    - sudo systemctl status ssh
+    - ps aux | grep ssh
+    - history | tail -n 20
+epoch:
+  Accounts:
+  - username: root
+    password: cMNWcyTL
+  - username: diarmuid
+    password: vJ47rGpc
+  - username: colm
+    password: taegMIc8
+  - username: alonso
+    password: mAsNqjSc
+  Software:
+  - name: nmap
+  - name: dnssec_downgrade
+  - name: sshpass
+  - name: avahi
+almeria:
+  Accounts:
+  - username: root
+    password: 9i53yyD3
+  - username: elif
+    password: HyP3MRJg
+  - username: colm
+    password: N8ZGrBOU
+  - username: hiro
+    password: Tp7tBqHt
+  Software:
+  - name: nmap
+  - name: dnssec_downgrade
+  - name: sshpass
+  - name: avahi
+  OS: *id001
+burgos:
+  Accounts:
+  - username: root
+    password: YALubyNL
+  - username: kristian
+    password: OidOOvDw
+  - username: elif
+    password: R6wMTrVF
+  - username: ayasha
+    password: bLd9Rb9x
+  Software:
+  - name: nmap
+  - name: dnssec_downgrade
+  - name: sshpass
+  - name: avahi
+  OS: *id001

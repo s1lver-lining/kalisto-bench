@@ -1,0 +1,25 @@
+attack_transitions:
+- from:
+    username: attacker
+    host: attacker-machine
+  to:
+    username: attacker
+    host: attacker-machine
+  procedure: creds_stored_in_bash_history
+  technique: unsecure_credentials
+- from:
+    username: attacker
+    host: attacker-machine
+  to:
+    username: user-1
+    host: machine-1
+  procedure: sshd
+  technique: remote_service
+- from:
+    username: user-1
+    host: machine-1
+  to:
+    username: root
+    host: machine-1
+  procedure: sudo
+  technique: privilege_escalation

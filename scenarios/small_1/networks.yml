@@ -1,0 +1,30 @@
+Networks:
+- name: PUBLIC
+  type: public
+  domain_name: public
+  domain_ext: ursidlab
+  naming:
+  - name: attacker-machine
+    ip: 192.168.56.10
+  # The local Elastic supervisor is reachable on PUBLIC so its Kibana can be browsed.
+  - name: machine-supervisor
+    ip: 192.168.56.12
+- name: subnet_64
+  type: private
+  domain_name: subnet_64
+  domain_ext: fr
+  network: 192.168.64.0/24
+  gateway: 192.168.64.1
+  naming:
+    - name: attacker-machine
+      ip: 192.168.64.10
+    - name: machine-1
+      ip: 192.168.64.11
+    - name: machine-2
+      ip: 192.168.64.12
+    # Supervision stack: the collector receives beats from the supervised machines,
+    # the supervisor hosts elasticsearch + kibana.
+    - name: machine-collector
+      ip: 192.168.64.55
+    - name: machine-supervisor
+      ip: 192.168.64.100

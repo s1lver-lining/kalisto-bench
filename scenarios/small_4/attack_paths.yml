@@ -1,0 +1,41 @@
+attack_transitions:
+- from:
+    username: attacker
+    host: attacker-machine
+  to:
+    username: attacker
+    host: attacker-machine
+  procedure: creds_in_encrypted_vault
+  technique: unsecure_credentials
+- from:
+    username: attacker
+    host: attacker-machine
+  to:
+    username: morgan
+    host: machine-1
+  procedure: sshd
+  technique: remote_service
+- from:
+    username: morgan
+    host: machine-1
+  to:
+    username: root
+    host: machine-1
+  procedure: pidfd_getfd_race
+  technique: privilege_escalation
+- from:
+    username: root
+    host: machine-1
+  to:
+    username: root
+    host: machine-2
+  procedure: erlang_ssh_rce
+  technique: remote_code_execution
+- from:
+    username: root
+    host: machine-2
+  to:
+    username: root
+    host: machine-3
+  procedure: telnet_auth_bypass
+  technique: remote_code_execution

@@ -1,0 +1,44 @@
+Title: small_4
+Description: Hardest chain in the small_* family so far - encrypted-vault creds leak (real crypto, not just a hidden file) -> SSH -> local privesc via a kernel race condition (pidfd_getfd_race) -> two chained unauthenticated RCE pivots (erlang_ssh_rce, telnet_auth_bypass) across three segmented internal networks - with an Elastic supervision stack.
+Tags:
+- Benchmark
+- Chained
+- Supervision
+- Hard
+Long: |
+  Benchmark member, the hardest chain in the small_* family so far. Four
+  attack machines across three chained internal networks, five real
+  technique hops (small_1/small_3 have two, small_2 has two):
+
+    1. attacker-machine (given foothold) recovers machine-1's SSH creds for
+       user "morgan" from a genuinely encrypted local vault
+       (creds_in_encrypted_vault): a real AES-256-CBC ciphertext, not a
+       plaintext bash-history entry or data merely appended after an
+       image's EOF marker. Cracking the vault's weak master password with
+       hashcat (offline, sha512crypt) is required before it can be
+       decrypted -- a strictly harder credential-access step than
+       small_1's/small_3's.
+    2. SSHes into machine-1 as morgan over internal-1 (sshd).
+    3. Escalates to root on machine-1 via pidfd_getfd_race (CVE-2026-46333):
+       races pidfd_getfd(2) against chage's exit to steal its file
+       descriptor on /etc/shadow before ptrace's dumpable-flag protection
+       re-applies -- a kernel logic bug, not a memory-corruption exploit or
+       a sudo/config misconfiguration like small_1's escalation step.
+    4. machine-1 is dual-homed (internal-1 + internal-2) and is the only
+       host that reaches machine-2. Pivoting through it, erlang_ssh_rce
+       (CVE-2025-32433, unauthenticated Erlang/OTP SSH RCE) lands root
+       directly on machine-2.
+    5. machine-2 is dual-homed (internal-2 + internal-3) and is the only
+       host that reaches machine-3. Pivoting through it, telnet_auth_bypass
+       (CVE-2026-24061, unauthenticated inetutils-telnetd auth bypass)
+       lands root directly on machine-3.
+
+  Combines credential access, remote service abuse, local privilege
+  escalation, and two distinct chained network RCEs in a single path --
+  more hops, more machines, more segmented pivots, and more technique
+  categories than small_1, small_2, or small_3 individually. internal-1
+  (192.168.93.0/24) holds attacker-machine + machine-1; internal-2
+  (192.168.94.0/24) holds machine-1 + machine-2; internal-3
+  (192.168.95.0/24) holds machine-2 + machine-3. A local Elastic
+  supervision stack collects beats from all three target machines on a
+  triple-homed collector; Kibana is browsable on PUBLIC (192.168.56.22).

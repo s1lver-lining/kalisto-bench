@@ -1,0 +1,73 @@
+Networks:
+  # Only the attacker's own machine and the supervisor (Kibana browsing)
+  # are actually internet-facing -- everything else lives on internal-1,
+  # matching the pattern used by every other scenario in this repo that
+  # runs the elasticsearch role (small_1/2/3, medium_1/2/3, small_4):
+  # attacker-machine is dual-homed onto internal-1 to reach the fleet
+  # directly, and machine-collector never gets a PUBLIC address at all.
+  - name: PUBLIC
+    type: public
+    domain_name: big-1
+    domain_ext: fr
+    naming:
+      - name: attacker-machine
+        ip: 192.168.56.20
+      - name: machine-supervisor
+        ip: 192.168.56.56
+
+  - name: internal-1
+    type: private
+    domain_name: internal
+    domain_ext: internal
+    network: 192.168.91.0/24
+    gateway: 192.168.91.1
+    naming:
+      - name: attacker-machine
+        ip: 192.168.91.10
+
+      # -- real path --
+      - name: web-front
+        ip: 192.168.91.60
+      - name: app-internal
+        ip: 192.168.91.71
+      - name: salt-master
+        ip: 192.168.91.80
+      - name: salt-minion
+        ip: 192.168.91.81
+
+      # -- dead end, reachable directly, leads nowhere --
+      - name: ftp01
+        ip: 192.168.91.70
+
+      # -- noise --
+      - name: nimbus-corp
+        ip: 192.168.91.61
+      - name: salt-minion-2
+        ip: 192.168.91.82
+      - name: dns01
+        ip: 192.168.91.90
+      - name: mqtt-broker01
+        ip: 192.168.91.91
+      - name: jmorel-ws
+        ip: 192.168.91.93
+
+      # -- supervision stack: collector receives beats from the fleet,
+      # supervisor hosts elasticsearch + kibana --
+      - name: machine-collector
+        ip: 192.168.91.55
+      - name: machine-supervisor
+        ip: 192.168.91.100
+
+  # Only reachable by pivoting through salt-minion's second interface --
+  # finance-db03 is never exposed anywhere else.
+  - name: internal-vault
+    type: private
+    domain_name: internal
+    domain_ext: internal
+    network: 192.168.90.0/24
+    gateway: 192.168.90.1
+    naming:
+      - name: salt-minion
+        ip: 192.168.90.11
+      - name: finance-db03
+        ip: 192.168.90.12

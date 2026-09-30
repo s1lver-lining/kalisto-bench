@@ -1,0 +1,117 @@
+collector:
+  mode: beat                                                  # supervised machines ship beats to this logstash collector
+  Machine_name: machine-collector
+  Accounts:
+    - username: root
+      password: roothAsAStr0ngP@ssw0rd
+  OS:
+    Type: linux:ubuntu
+    Version: "24.04"
+  Software:
+    - name: change_default_password
+    - name: logstash
+      project_name: "small_4"                                # customises the elasticsearch index name
+      beats: true                                            # receive beats on the default port 5044
+      beat_ssl: true                                         # TLS between beats and logstash
+      filebeat: true                                         # add filebeat parsing rules
+      file_output: false                                     # do not also write to a local file
+      elasticsearch: true                                    # forward parsed events to elasticsearch
+      elasticsearch_hosts:
+        - https://192.168.93.100:9200/                       # elasticsearch on the local supervisor
+      server_san:                                            # SANs so all three collector interfaces are valid for the beats <-> logstash cert
+        - "DNS:machine-collector"
+        - "IP:192.168.93.55"                                 # internal-1 interface
+        - "IP:192.168.94.55"                                 # internal-2 interface (machine-2's beats)
+        - "IP:192.168.95.55"                                 # internal-3 interface (machine-3's beats)
+  Resources:
+    memory: 4096
+    cpus: 2
+  provision_after:
+    - machine-supervisor                                     # elasticsearch must be up before logstash ships to it
+
+supervisor:
+  Machine_name: machine-supervisor
+  mode: local                                                # provision a local Elastic supervisor (elasticsearch + kibana)
+  local-configuration:
+    Accounts:
+      - username: elastic
+        password: 3l@st1kP@ssw0rd!
+    OS:
+      Type: linux:ubuntu
+      Version: "24.04"
+    Software:
+      - name: change_default_password
+      - name: elasticsearch
+        logstash_host: machine-collector
+        # Pick the supervisor's internal-1 interface IP for ES to bind/publish on
+        # (the interface the collector reaches it through). Without this the role's
+        # 'optional' default leaves elastic_ip_address undefined on a multi-homed
+        # supervisor. Kalisto remaps this CIDR with the subnet.
+        elasticsearch_subnet: "192.168.93.0/24"
+        # logstash connects to elasticsearch over the internal-1 IP (192.168.93.100),
+        # so that IP must be in the cert SAN or logstash's TLS verification fails.
+        # This IP is remapped alongside the others if kalisto reassigns the subnet.
+        elasticsearch_extra_ips:
+          - 192.168.93.100
+        elasticsearch_bootstrap_password: "Ye1x-Nf8lq-fnM07j-aA-Ki4Bys-i7ah-LLiIvwX"
+        generateca: true
+        elasticsearch_ca_filename: elastic-stack-ca.p12
+        elasticsearch_ca_password: "Elk-Ca-P4ssw0rd!"
+        elasticsearch_http_password: "Elk-Http-P4ssw0rd!"
+        elasticsearch_security_enabled: true
+        elasticsearch_https_enabled: true
+        elasticsearch_cert_propagation_hosts:
+          - machine-collector                                # push the generated CA/cert to the logstash collector
+      - name: kibana
+    Resources:
+      memory: 4096
+      cpus: 4
+
+supervised-machines:
+  # The three exploited target hosts ship beats to the collector.
+  machine-name-list:
+    - machine-1
+    - machine-2
+    - machine-3
+
+  # Default: internal-1 machines (machine-1) reach the collector on its
+  # internal-1 interface (192.168.93.55).
+  sensor-default-configuration:
+    - name: packetbeat
+      logstash: true
+      logstash_hosts: 192.168.93.55
+    - name: metricbeat
+      logstash: true
+      logstash_hosts: 192.168.93.55
+    - name: filebeat
+      logstash: true
+      logstash_hosts: 192.168.93.55
+    - name: auditbeat
+      logstash: true
+      logstash_hosts: 192.168.93.55
+
+  # machine-2 and machine-3 do not sit on internal-1, so they ship to the
+  # collector's internal-2 / internal-3 interfaces respectively.
+  except-for:
+    - machine: machine-2
+      sensors:
+        - name: packetbeat
+          logstash: true
+          logstash_hosts: 192.168.94.55
+        - name: filebeat
+          logstash: true
+          logstash_hosts: 192.168.94.55
+        - name: auditbeat
+          logstash: true
+          logstash_hosts: 192.168.94.55
+    - machine: machine-3
+      sensors:
+        - name: packetbeat
+          logstash: true
+          logstash_hosts: 192.168.95.55
+        - name: filebeat
+          logstash: true
+          logstash_hosts: 192.168.95.55
+        - name: auditbeat
+          logstash: true
+          logstash_hosts: 192.168.95.55

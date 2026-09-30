@@ -1,0 +1,46 @@
+Networks:
+- name: PUBLIC
+  type: public
+  domain_name: public
+  domain_ext: ursidlab
+  naming:
+  - name: machine-1
+    ip: 192.168.56.10
+  # The local Elastic supervisor is reachable on PUBLIC so its Kibana can be browsed.
+  - name: machine-supervisor
+    ip: 192.168.56.12
+
+# First internal network: attacker (machine-1) reaches the Jenkins host (machine-2).
+- name: internal-1
+  type: private
+  domain_name: internal
+  domain_ext: internal
+  network: 192.168.91.0/24
+  gateway: 192.168.91.1
+  naming:
+  - name: machine-1
+    ip: 192.168.91.10
+  - name: machine-2
+    ip: 192.168.91.11
+  # Supervision stack lives on internal-1; the collector is dual-homed (see below).
+  - name: machine-collector
+    ip: 192.168.91.55
+  - name: machine-supervisor
+    ip: 192.168.91.100
+
+# Second internal network, reachable only by pivoting through the dual-homed
+# Jenkins host (machine-2) onto the ActiveMQ host (machine-3).
+- name: internal-2
+  type: private
+  domain_name: internal
+  domain_ext: internal
+  network: 192.168.92.0/24
+  gateway: 192.168.92.1
+  naming:
+  - name: machine-2
+    ip: 192.168.92.11
+  - name: machine-3
+    ip: 192.168.92.12
+  # Collector's second interface so the ActiveMQ host can ship its beats locally.
+  - name: machine-collector
+    ip: 192.168.92.55

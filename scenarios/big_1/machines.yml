@@ -1,0 +1,381 @@
+# ============================================================
+# big_1 -- assembled benchmark scenario.
+# Each machine below was independently built and validated in its own
+# demo-* scenario first; see scenarios/big_1/diagram.tex for the full
+# attack graph (real path in red, dead end in orange, noise in gray).
+# Real path first, then the dead end, then noise.
+# ============================================================
+
+# ---------------------------------------------------------------
+# The attacker's own machine -- external, not part of the target infra.
+# ---------------------------------------------------------------
+
+attacker-machine:
+  Accounts:
+    - username: attacker
+      password: attacker
+
+  Software:
+    - name: nmap
+    - name: sshpass
+
+  Resources:
+    # The Artemis foothold relays the whole run through this box (a
+    # direct-tcpip tunnel per internal agent) and bootstraps the salt client
+    # (~150-200 MB) for salt_master_rce; 512 MB OOM-killed the foothold agent
+    # mid-run. Give it real headroom.
+    memory: 4096
+    cpus: 2
+
+# ---------------------------------------------------------------
+# DMZ entry: real path
+# ---------------------------------------------------------------
+
+web-front:
+  # The actually vulnerable machine: "Nimbus Ops" (SSRF via /healthcheck)
+  # plus a loopback-only internal stub holding the secret it leaks. The
+  # leaked token is opsbot's real password on app-internal (see below).
+  OS:
+    Type: linux:ubuntu
+    Version: "22.04"
+
+  Software:
+    - name: ssrf_internal_leak
+      ssrf_internal_leak_secret_token: "nimbus-internal-tok-7f3a9c"
+    - name: caddy
+      domain_name: "big-1"
+      domain_ext: "fr"
+      public_ip: 192.168.91.60
+      servers:
+        - name: ops
+          ip: 127.0.0.1:5000
+        - name: corp
+          ip: 192.168.91.61:80
+    - name: add_files
+      filelist:
+        - filename: "/opt/nimbus-ops/CHANGELOG.md"
+          filecontent: |
+            # Nimbus Ops -- Changelog
+
+            ## 2026-06-02
+            - Bumped the partner-status widget's poll interval from 30s to
+              90s after the dashboard started rate-limiting itself.
+            - Added basic auth in front of /admin (finally).
+
+            ## 2026-04-14
+            - Migrated session storage from local files to the shared
+              internal cache. Should fix the random logouts on-call kept
+              reporting.
+
+            ## 2026-02-27
+            - Added the partner healthcheck widget the integrations team
+              asked for back in Q4. Dashboard now shows partner API status
+              at a glance.
+
+            ## 2025-11-03
+            - Initial internal release.
+
+  Resources:
+    memory: 1024
+    cpus: 1
+
+# ---------------------------------------------------------------
+# Internal tier: real path, reached with the SSRF-leaked token
+# ---------------------------------------------------------------
+
+app-internal:
+  # opsbot's password IS the token leaked from web-front's SSRF -- the
+  # stub explicitly exists to authenticate against "the real internal
+  # tier it stands in for" (see ssrf_internal_leak/info.yml). Once in,
+  # opsbot's docker-group membership is full root equivalence.
+  OS:
+    Type: linux:ubuntu
+    Version: "22.04"
+
+  Accounts:
+    - username: opsbot
+      password: "nimbus-internal-tok-7f3a9c"
+    - username: root
+      password: "not_used_overridden_by_root_privesc"
+
+  Software:
+    - name: docker_socket_escape
+      docker_socket_escape_compose_file: "resources/docker-compose.yml"
+    - name: creds_in_git_history
+      # A deploy repo opsbot owns, with an old salt connection file
+      # "cleaned up" in a later commit. Real recon value (it correctly
+      # names where the config-management infra lives) but the API key
+      # itself turns out not to matter -- salt_master_rce is pre-auth,
+      # nothing ever checks it.
+      git_user: "opsbot"
+      git_repo_relpath: "projects/infra-automation"
+      git_credential_file: "salt/master.env"
+      git_credential_secret: 'SALT_API_KEY="7f2c9e1b4a6d8f0c2e4a6b8d0f2c4e6a"'
+      git_credential_content: |
+        # SaltStack master connection settings -- do not commit real secrets here
+        SALT_MASTER_HOST="salt-master.instance.big-1.fr"
+        SALT_MASTER_PORT="4506"
+        SALT_API_KEY="7f2c9e1b4a6d8f0c2e4a6b8d0f2c4e6a"
+      git_sanitized_content: |
+        # SaltStack master connection settings -- do not commit real secrets here
+        SALT_MASTER_HOST="salt-master.instance.big-1.fr"
+        SALT_MASTER_PORT="4506"
+        SALT_API_KEY="<set via environment, see vault>"
+      git_seed_commits:
+        - message: "Initial commit"
+          file: "README.md"
+          content: "# infra-automation\n\nInternal deploy + config-management scripts.\n"
+        - message: "Add deploy script"
+          file: "scripts/deploy.sh"
+          content: "#!/bin/bash\necho 'deploying...'\n"
+        - message: "Add gitignore"
+          file: ".gitignore"
+          content: "*.log\n*.tmp\n"
+
+  Resources:
+    memory: 2048
+    cpus: 2
+
+# ---------------------------------------------------------------
+# SaltStack fleet: real path (salt-master, salt-minion, finance-db03)
+# ---------------------------------------------------------------
+
+salt-master:
+  OS:
+    Type: linux:ubuntu
+    Version: "==20.04"
+
+  Accounts:
+    - username: root
+      password: "not_used_system_account"
+
+  Software:
+    - name: salt_master_rce
+      salt_master_rce_loot_content: |
+        salt ops notes -- fleet credentials, rotate before audit
+        ----------------------------------------------------------------
+        shared local admin account deployed to every managed host:
+          user: fleet-admin
+          pass: FleetWideAccess2026
+    - name: add_files
+      filelist:
+        - filename: "/etc/motd"
+          filecontent: |
+            *********************************************************
+             Managed by Platform Ops -- do not edit by hand.
+             Config drift is corrected automatically; ad-hoc changes
+             will be overwritten on the next run.
+             Questions: #platform-ops
+            *********************************************************
+
+            Open items:
+              - OPS-4471: upgrade path to Salt 3003.x blocked on a
+                custom-module compat pass, tentatively next quarter.
+
+  Resources:
+    memory: 2048
+    cpus: 1
+
+salt-minion:
+  # Dual-homed (PUBLIC + internal-vault): the only host that reaches
+  # finance-db03.
+  # Memory note (applies to salt-master and finance-db03 too): every host in
+  # this scenario also runs packetbeat for the supervision stack, and a pentest
+  # agent landing here is a ~33 MB static binary with a ~60 MB resident set. At
+  # 1024 MB the salt-master OOM-killer reaped the agent minutes after it landed,
+  # so every follow-up recon step on the fleet failed for no visible reason.
+  OS:
+    Type: linux:ubuntu
+    Version: "==20.04"
+
+  Software:
+    - name: salt_minion
+      salt_minion_master_ip: "192.168.91.80"
+
+  Resources:
+    memory: 2048
+    cpus: 1
+
+finance-db03:
+  # Only reachable via salt-minion's internal-vault interface.
+  OS:
+    Type: linux:ubuntu
+    Version: "==20.04"
+
+  Accounts:
+    - username: fleet-admin
+      password: "FleetWideAccess2026"
+    - username: root
+      password: "not_used_system_account"
+
+  Software:
+    # Vulnerable sudo (CVE-2019-14287): installs sudo 1.8.27 + a
+    # `(ALL, !root) NOPASSWD: /bin/bash` rule for every non-system user, so
+    # fleet-admin can `sudo -u#-1 /bin/bash` -> root. This is the privesc the
+    # scenario's own attack_paths.yml already declares (fleet-admin@finance-db03
+    # -> root@finance-db03, procedure: sudo); it was missing from Software.
+    - name: sudo
+    - name: add_files
+      filelist:
+        - filename: "/etc/motd"
+          filecontent: |
+            ===========================================================
+              FINANCE-DB-03 -- quarterly reporting, restricted access
+              Access goes through the Finance IT ticket queue, not
+              ad-hoc sudo grants. If you're seeing this and don't know
+              why you have access, flag it to platform-security.
+            ===========================================================
+
+  Resources:
+    memory: 1024
+    cpus: 1
+
+# ---------------------------------------------------------------
+# Dead end: real RCE, genuinely leads nowhere further
+# ---------------------------------------------------------------
+
+ftp01:
+  # Single-homed. CVE-2026-42167 is real and the loot is a real
+  # credential -- for a backup-nas that doesn't exist anywhere else in
+  # this scenario. A genuine dead end, not a fake one.
+  OS:
+    Type: linux:ubuntu
+    Version: "22.04"
+
+  Accounts:
+    - username: postgres
+      password: "not_used_system_account_created_by_postgresql_pkg"
+
+  Software:
+    - name: proftpd_mod_sql_rce
+      proftpd_mod_sql_rce_pg_password: "ProftpdSqlRoleP@ss1"
+      proftpd_mod_sql_rce_loot_content: |
+        legacy backup notes -- do not lose, ops team keeps losing this
+        ----------------------------------------------------------------
+        backup-nas share credentials (still valid as of last migration):
+          host: 10.50.0.40
+          user: svc-backup
+          pass: B4ckup2019!Legacy
+
+        remember to rotate this before Q3 audit -- nobody has yet.
+
+  Resources:
+    memory: 1024
+    cpus: 1
+
+# ---------------------------------------------------------------
+# Noise: genuinely running services, nothing exploitable
+# ---------------------------------------------------------------
+
+nimbus-corp:
+  # A clean, non-vulnerable WordPress site ("Nimbus Corp") sitting right
+  # next to web-front -- pure noise, recon has to tell the two apps apart.
+  OS:
+    Type: linux:ubuntu
+    Version: "22.04"
+
+  Software:
+    - name: wordpress
+      wordpress_site_ip: "corp.instance.big-1.fr"
+      mysql_root_password: "R00tMysqlNimbusCorp!"
+      mysql_password: "NimbusCorpWpDbPass!"
+      wordpress_title: "Nimbus Corp"
+      wordpress_homepage_title: "Home"
+      wordpress_admin_user: "admin"
+      wordpress_admin_password: "ChangeMe_please_123!"
+      wordpress_hero_image_name: "logo-ursid.png"
+
+  Resources:
+    memory: 2048
+    cpus: 2
+
+salt-minion-2:
+  # Same fleet, same broadcast -- but single-homed, leads nowhere
+  # further.
+  OS:
+    Type: linux:ubuntu
+    Version: "==20.04"
+
+  Software:
+    - name: salt_minion
+      salt_minion_master_ip: "192.168.91.80"
+
+  Resources:
+    # 2048 like the other salt fleet hosts: an agent can land here too during
+    # fleet enumeration, and packetbeat + the ~60 MB agent RSS OOM-killed the
+    # agent at 1024 (see salt-minion's memory note).
+    memory: 2048
+    cpus: 1
+
+dns01:
+  OS:
+    Type: linux:debian
+    Version: "12.0"
+
+  Software:
+    - name: dns
+      ursid_dns_domain: "corp.lab"
+      ursid_dns_records:
+        - { name: dns01, ip: 192.168.91.90 }
+        - { name: mqtt-broker01, ip: 192.168.91.91 }
+        - { name: jmorel-ws, ip: 192.168.91.93 }
+
+  Resources:
+    memory: 512
+    cpus: 1
+
+mqtt-broker01:
+  # Ubuntu 20.04, not 22.04 -- confirmed live (scenarios/demo-mqtt) that
+  # 22.04 reliably fails Vagrant's SSH-readiness check on this host.
+  OS:
+    Type: linux:ubuntu
+    Version: "==20.04"
+
+  Software:
+    - name: mqtt-server
+
+  Resources:
+    memory: 512
+    cpus: 1
+
+jmorel-ws:
+  # Ubuntu 24.04, not 22.04 -- confirmed live (scenarios/demo-jmorel)
+  # that 22.04 reliably fails Vagrant's SSH-readiness check on this
+  # host; 24.04 worked cleanly first try.
+  OS:
+    Type: linux:ubuntu
+    Version: "==24.04"
+
+  Accounts:
+    - username: j.morel
+      password: "N0tLeakedAnywhere!42"
+
+  Software:
+    - name: process_mocker
+      process_mocker_real_services:
+        - name: cron
+          state: started
+          enabled: true
+        - name: rsyslog
+          state: started
+          enabled: true
+      process_mocker_fake_processes:
+        - name: legacy_backup_sync
+          user: j.morel
+          command: "/usr/local/bin/backup-sync.sh --incremental"
+          working_dir: "/home/j.morel"
+          cpu_burst_chance: 8
+          cpu_burst_duration: 3
+        - name: monitoring_agent_legacy
+          user: j.morel
+          command: "/opt/legacy-monitor/agent --poll 60"
+          working_dir: "/home/j.morel"
+          cpu_burst_chance: 4
+          cpu_burst_duration: 1
+    - name: user_mocker
+      user_mocker_user: j.morel
+      user_mocker_profile: web_admin
+
+  Resources:
+    memory: 512
+    cpus: 1

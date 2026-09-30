@@ -1,0 +1,20 @@
+attack_transitions:
+# machine-1 (attacker) -> machine-2 : unauthenticated Jenkins XStream deserialization RCE.
+- from:
+    username: attacker
+    host: machine-1
+  to:
+    username: jenkins
+    host: machine-2
+  procedure: jenkins_xstream_deserialize
+  technique: lateral_movement
+# machine-2 (Jenkins pivot) -> machine-3 : ActiveMQ JSP upload RCE, reachable only
+# from machine-2 over internal-2.
+- from:
+    username: jenkins
+    host: machine-2
+  to:
+    username: activemq
+    host: machine-3
+  procedure: activemq_jsp_upload_rce
+  technique: lateral_movement

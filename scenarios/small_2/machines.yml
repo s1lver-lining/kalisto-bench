@@ -1,0 +1,53 @@
+machine-1:
+  # Attacker / entry point. Reaches the Jenkins host (machine-2) on internal-1 and
+  # exploits it remotely (unauthenticated XStream deserialization RCE).
+  OS:
+    Type: linux:ubuntu
+    Version: '>=22.04'
+  Accounts:
+  - username: attacker
+    password: attacker
+    sudoers: true
+    sudoers_nopasswd: true
+  - username: root
+    password: rootpassword
+  Software:
+  - name: nmap
+  - name: dnssec_downgrade
+  - name: avahi
+machine-2:
+  provision_after: [machine-collector]
+  # Jenkins host. Reached from machine-1 via jenkins_xstream_deserialize. Dual-homed
+  # (internal-1 + internal-2), so it is the pivot onto the ActiveMQ host (machine-3).
+  OS:
+    Type: linux:debian
+    Version: '>=11'
+  Accounts:
+  - username: svc
+    password: svcpass
+  - username: root
+    password: rootpassword
+  - username: jenkins
+    system: true
+    password_locked: true
+  Software:
+  - name: nmap
+  - name: jenkins_xstream_deserialize
+machine-3:
+  provision_after: [machine-collector]
+  # ActiveMQ host. Only reachable from machine-2 (internal-2). Reached via
+  # activemq_jsp_upload_rce.
+  OS:
+    Type: linux:debian
+    Version: '>=11'
+  Accounts:
+  - username: svc
+    password: svcpass
+  - username: root
+    password: rootpassword
+  - username: activemq
+    system: true
+    password_locked: true
+  Software:
+  - name: nmap
+  - name: activemq_jsp_upload_rce

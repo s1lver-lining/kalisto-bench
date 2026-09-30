@@ -1,0 +1,101 @@
+attacker-machine:
+  OS:
+    Type: linux:ubuntu
+    Version: '24.04'
+  Accounts:
+  - username: attacker
+    password: attacker
+  Software:
+  - name: nmap
+  - name: dnssec_downgrade
+  - name: sshpass
+  - name: avahi
+  - name: creds_in_git_history
+    git_user: attacker
+    git_repo_relpath: projects/internal-tools
+    git_credential_file: config/database.yml
+    git_credential_secret: 'password: "9PUfCcj2"'
+    git_credential_content: "production:\n  adapter: postgresql\n  host: sheliak.local\n  username: beatrix\n\
+      \  password: \"9PUfCcj2\"\n"
+    git_sanitized_content: "production:\n  adapter: postgresql\n  host: sheliak.local\n  username: beatrix\n\
+      \  password: \"<set via DATABASE_PASSWORD env var>\"\n"
+    git_seed_commits:
+    - content: '# internal-tools
+
+
+        Internal automation scripts.
+
+        '
+      file: README.md
+      message: Initial commit
+    - content: '#!/bin/bash
+
+        echo ''deploying...''
+
+        '
+      file: scripts/deploy.sh
+      message: Add deploy script
+    - content: '*.log
+
+        *.tmp
+
+        '
+      file: .gitignore
+      message: Add gitignore
+antares:
+  provision_after: [machine-collector]
+  OS:
+    Type: linux:ubuntu
+    Version: '24.04'
+  Accounts:
+  - username: root
+    password: pyO4c3i2
+  - username: esther
+    password: BY2EOJ8Q
+  - username: laila
+    password: kFEj8Y2n
+  - username: kim
+    password: g5ujrXs5
+  Software:
+  - name: nmap
+  - name: dnssec_downgrade
+  - name: sshpass
+  - name: avahi
+sheliak:
+  provision_after: [machine-collector]
+  OS:
+    Type: linux:ubuntu
+    Version: '24.04'
+  Accounts:
+  - username: root
+    password: sWIHZclL
+  - username: emre
+    password: soVMjNuA
+  - username: alexei
+    password: k55Fwd05
+  - username: beatrix
+    password: 9PUfCcj2
+  Software:
+  - name: nmap
+  - name: dnssec_downgrade
+  - name: sshpass
+  - name: avahi
+propus:
+  provision_after: [machine-collector]
+  OS:
+    Type: linux:ubuntu
+    Version: '24.04'
+  Accounts:
+  - username: root
+    password: yAYyOBuT
+  - username: emre
+    password: yDQRLY8w
+  - username: beatrix
+    password: kj8OaKYe
+  - username: esther
+    password: ZtNm15bV
+  Software:
+  - name: nmap
+  - name: dnssec_downgrade
+  - name: sshpass
+  - name: avahi

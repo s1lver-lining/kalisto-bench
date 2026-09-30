@@ -1,0 +1,25 @@
+attack_transitions:
+- from:
+    username: attacker
+    host: attacker-machine
+  to:
+    username: attacker
+    host: attacker-machine
+  procedure: creds_in_git_history
+  technique: unsecure_credentials
+- from:
+    username: attacker
+    host: attacker-machine
+  to:
+    username: beatrix
+    host: sheliak
+  procedure: sshd
+  technique: remote_service
+- from:
+    username: beatrix
+    host: sheliak
+  to:
+    username: root
+    host: antares
+  procedure: dizquetv
+  technique: exploitation_for_client_execution

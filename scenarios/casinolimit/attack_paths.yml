@@ -1,0 +1,40 @@
+attack_transitions:
+# 1. SSH password reuse: start -> meetingcam (same tbenedict credentials).
+- from:
+    username: tbenedict
+    host: start
+  to:
+    username: tbenedict
+    host: meetingcam
+  procedure: sshd
+  technique: remote_service
+
+# 2. Camera snapshots leak tocean's (partial) credentials -> SSH pivot to bastion.
+- from:
+    username: tbenedict
+    host: meetingcam
+  to:
+    username: tocean
+    host: bastion
+  procedure: sshd
+  technique: remote_service
+
+# 3. Local privilege escalation on bastion via CVE-2023-0386 (OverlayFS).
+- from:
+    username: tocean
+    host: bastion
+  to:
+    username: root
+    host: bastion
+  procedure: cve_2023_0386_overlayfs_priv_esc
+  technique: vertical_movement
+
+# 4. EJS SSTI (delimiter opt) + unrestricted upload -> RCE into the intranet website.
+- from:
+    username: root
+    host: bastion
+  to:
+    username: root
+    host: intranet
+  procedure: casino_ejs_ssti
+  technique: remote_code_execution

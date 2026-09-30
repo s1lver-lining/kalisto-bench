@@ -1,0 +1,66 @@
+attacker-machine:
+  Accounts:
+  - username: attacker
+    password: attacker
+    sudoers: true
+    sudoers_nopasswd: true
+  Software:
+  - name: nmap
+  - name: dnssec_downgrade
+  - name: sshpass
+  - name: creds_stored_in_bash_history
+    history_user: attacker
+    history_message: sshpass -p 'XlcqIlm3' ssh user-1@machine-1
+    history_seed_commands:
+    - ls -la
+    - cd ~
+    - cd ~/projects
+    - git status
+    - ls -la
+    - cd ~
+    - cd ~/projects
+    - git status
+    - vim main.py
+    - tail -n 50 /var/log/syslog
+    - sudo systemctl status ssh
+    - ps aux | grep ssh
+    - history | tail -n 20
+  - name : avahi
+
+  OS: &id001
+    Type: linux:ubuntu
+    Version: '24.04'
+machine-1:
+  provision_after: [machine-collector]
+  Accounts:
+  - username: root
+    password: bApIgpQO
+  - username: user-1
+    password: XlcqIlm3
+  - username: user-4
+    password: lrqk78k0
+  - username: user-3
+    password: DS4WgddQ
+  Software:
+  - name: nmap
+  - name: sshpass
+  - name: dnssec_downgrade
+  - name : avahi
+  
+machine-2:
+  provision_after: [machine-collector]
+  Accounts:
+  - username: root
+    password: qHqric43
+  - username: user-2
+    password: xsZuhDcu
+  - username: user-1
+    password: lyfuygpg
+  - username: user-4
+    password: JnZDNcGw
+  Software:
+  - name: nmap
+  - name: dnssec_downgrade
+  - name : avahi
+  
+  OS: *id001

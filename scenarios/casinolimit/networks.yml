@@ -1,0 +1,50 @@
+Networks:
+# Player entry point: "start" is reachable on the public network so a player (or an
+# autonomous kalisto agent) can SSH in as tbenedict.
+- name: PUBLIC
+  type: public
+  domain_name: casinolimit
+  domain_ext: bzh
+  naming:
+  - name: start
+    ip: 192.168.15.210
+  # The local Elastic supervisor is reachable on PUBLIC so its Kibana can be browsed.
+  - name: machine-supervisor
+    ip: 192.168.15.212
+
+# Casino floor network (original addressing preserved).
+- name: casino_network
+  type: private
+  network: 10.35.100.0/24
+  gateway: 10.35.100.1
+  domain_name: casinolimit
+  domain_ext: bzh
+  naming:
+  - name: start
+    ip: 10.35.100.10
+  - name: meetingcam
+    ip: 10.35.100.11
+  - name: bastion
+    ip: 10.35.100.20
+  # Supervision stack lives on the casino network; the collector is dual-homed (see below)
+  # and the supervisor hosts elasticsearch + kibana.
+  - name: machine-collector
+    ip: 10.35.100.55
+  - name: machine-supervisor
+    ip: 10.35.100.100
+
+# Internal intranet network, reachable only by pivoting through the dual-homed bastion.
+- name: intranet_network
+  type: private
+  network: 10.135.100.0/24
+  gateway: 10.135.100.1
+  domain_name: casinolimit
+  domain_ext: bzh
+  naming:
+  - name: bastion
+    ip: 10.135.100.20
+  - name: intranet
+    ip: 10.135.100.10
+  # Collector's second interface so the intranet machine can ship its beats locally.
+  - name: machine-collector
+    ip: 10.135.100.55

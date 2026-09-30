@@ -1,0 +1,20 @@
+Title: small_2
+Description: Chained RCE across two internal subnets - Jenkins (machine-2) then ActiveMQ (machine-3) - with an Elastic supervision stack.
+Tags:
+- Benchmark
+- Chained
+- Supervision
+Long: |
+  Benchmark member. Three attack machines across two chained internal networks:
+
+    1. machine-1 (attacker, entry) exploits the Jenkins host machine-2 over
+       internal-1 via jenkins_xstream_deserialize (unauthenticated XStream
+       deserialization RCE) -> jenkins on machine-2.
+    2. machine-2 is dual-homed (internal-1 + internal-2) and is the only host that
+       reaches the ActiveMQ host machine-3. Pivoting through it,
+       activemq_jsp_upload_rce lands activemq on machine-3.
+
+  internal-1 (192.168.91.0/24) holds machine-1 + machine-2; internal-2
+  (192.168.92.0/24) holds machine-2 + machine-3. A local Elastic supervision stack
+  collects beats from machine-2 (internal-1) and machine-3 (internal-2) on a
+  dual-homed collector; Kibana is browsable on PUBLIC (192.168.56.12).

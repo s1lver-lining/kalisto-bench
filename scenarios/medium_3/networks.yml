@@ -1,0 +1,60 @@
+Networks:
+- name: PUBLIC
+  type: public
+  domain_name: public
+  domain_ext: ursidlab
+  naming:
+  - name: attacker-machine
+    ip: 192.168.56.10
+  # The local Elastic supervisor is reachable on PUBLIC so its Kibana can be browsed.
+  - name: machine-supervisor
+    ip: 192.168.56.12
+- name: internal-1
+  type: private
+  network: 10.35.100.0/24
+  gateway: 10.35.100.1
+  domain_name: internal
+  domain_ext: internal
+  naming:
+  - name: attacker-machine
+    ip: 10.35.100.10
+  - name: bayeux
+    ip: 10.35.100.11
+  - name: epoch
+    ip: 10.35.100.12
+  - name: almeria
+    ip: 10.35.100.13
+  - name: kaus
+    ip: 10.35.100.14
+  # Supervision stack: the collector receives beats from the internal-1 machines,
+  # the supervisor hosts elasticsearch + kibana.
+  - name: machine-collector
+    ip: 10.35.100.55
+  - name: machine-supervisor
+    ip: 10.35.100.100
+- name: internal-2
+  type: private
+  network: 10.35.101.0/24
+  gateway: 10.35.101.1
+  domain_name: internal
+  domain_ext: internal
+  naming:
+  - name: kaus
+    ip: 10.35.101.10
+  - name: burgos
+    ip: 10.35.101.11
+  - name: sadalmelik
+    ip: 10.35.101.12
+  # Collector's second interface, so burgos (internal-2 only) and sadalmelik
+  # (internal-2/3) can ship beats without needing an internal-1 route.
+  - name: machine-collector
+    ip: 10.35.101.55
+- name: internal-3
+  type: private
+  network: 10.35.102.0/24
+  gateway: 10.35.102.1
+  domain_name: internal
+  domain_ext: internal
+  naming:
+  - name: sadalmelik
+    ip: 10.35.102.10

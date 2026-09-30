@@ -1,0 +1,57 @@
+attack_transitions:
+- from:
+    username: attacker
+    host: attacker-machine
+  to:
+    username: pirat
+    host: arequipa
+  procedure: react2shell
+  technique: remote_code_execution
+- from:
+    username: pirat
+    host: arequipa
+  to:
+    username: pirat
+    host: artois
+  procedure: react2shell
+  technique: remote_code_execution
+- from:
+    username: pirat
+    host: artois
+  to:
+    username: root
+    host: artois
+  procedure: sudo
+  technique: privilege_escalation
+- from:
+    username: root
+    host: artois
+  to:
+    username: root
+    host: artois
+  procedure: creds_stored_in_bash_history
+  technique: unsecure_credentials
+- from:
+    username: root
+    host: artois
+  to:
+    username: root
+    host: heze
+  procedure: telnet
+  technique: remote_service
+- from:
+    username: root
+    host: heze
+  to:
+    username: pirat
+    host: vesper
+  procedure: react2shell
+  technique: remote_code_execution
+- from:
+    username: pirat
+    host: vesper
+  to:
+    username: root
+    host: vesper
+  procedure: copyfail
+  technique: privilege_escalation

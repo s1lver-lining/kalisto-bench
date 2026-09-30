@@ -1,0 +1,57 @@
+attack_transitions:
+- from:
+    username: attacker
+    host: attacker-machine
+  to:
+    username: pirat
+    host: bayeux
+  procedure: react2shell
+  technique: remote_code_execution
+- from:
+    username: pirat
+    host: bayeux
+  to:
+    username: root
+    host: bayeux
+  procedure: sudo
+  technique: privilege_escalation
+- from:
+    username: root
+    host: bayeux
+  to:
+    username: root
+    host: epoch
+  procedure: dizquetv
+  technique: exploitation_for_client_execution
+- from:
+    username: root
+    host: epoch
+  to:
+    username: root
+    host: kaus
+  procedure: dizquetv
+  technique: exploitation_for_client_execution
+- from:
+    username: root
+    host: kaus
+  to:
+    username: root
+    host: kaus
+  procedure: creds_stored_in_bash_history
+  technique: unsecure_credentials
+- from:
+    username: root
+    host: kaus
+  to:
+    username: erwin
+    host: sadalmelik
+  procedure: sshd
+  technique: remote_service
+- from:
+    username: erwin
+    host: sadalmelik
+  to:
+    username: root
+    host: sadalmelik
+  procedure: sudo
+  technique: privilege_escalation

@@ -1,0 +1,101 @@
+collector:
+  mode: beat                                                  # supervised machines ship beats to this logstash collector
+  Machine_name: machine-collector
+  Accounts:
+    - username: root
+      password: roothAsAStr0ngP@ssw0rd
+  OS:
+    Type: linux:ubuntu
+    Version: "24.04"
+  Software:
+    - name: change_default_password
+    - name: logstash
+      project_name: "big_1"                                  # customises the elasticsearch index name
+      beats: true                                             # receive beats on the default port 5044
+      beat_ssl: true                                          # TLS between beats and logstash
+      filebeat: true                                          # add filebeat parsing rules
+      file_output: false                                      # do not also write to a local file
+      elasticsearch: true                                     # forward parsed events to elasticsearch
+      elasticsearch_hosts:
+        - https://192.168.91.100:9200/                        # elasticsearch on the supervisor's private supervision-network interface
+      server_san:                                             # SAN so the collector interface is valid for the beats <-> logstash cert
+        - "DNS:machine-collector"
+        - "IP:192.168.91.55"                                  # internal-1 -- collector has no PUBLIC address at all
+  Resources:
+    memory: 4096
+    cpus: 2
+  provision_after:
+    - machine-supervisor                                      # elasticsearch must be up before logstash ships to it
+
+supervisor:
+  Machine_name: machine-supervisor
+  mode: local                                                 # provision a local Elastic supervisor (elasticsearch + kibana)
+  local-configuration:
+    Accounts:
+      - username: elastic
+        password: 3l@st1kP@ssw0rd!
+    OS:
+      Type: linux:ubuntu
+      Version: "24.04"
+    Software:
+      - name: change_default_password
+      - name: elasticsearch
+        logstash_host: machine-collector
+        # elastic_ip_address is picked by matching ansible_all_ipv4_addresses
+        # against elasticsearch_subnet (software_configuration/elasticsearch/
+        # tasks/preflight.yml) -- it only falls back to ansible_default_ipv4
+        # when elasticsearch_subnet is undefined, which set_facts.yml makes
+        # unreachable once "optional" resolves. On a real backend (Proxmox)
+        # PUBLIC is DHCP/bridge-assigned and doesn't reliably land the literal
+        # IPs from networks.yml, so the match can fail there even though it
+        # happens to work on Parallels. Pin it to the private, statically
+        # addressed "supervision" network instead, matching every other
+        # scenario in this repo that runs this role (small_1/2/3, medium_1/2/3).
+        elasticsearch_subnet: "192.168.91.0/24"
+        elasticsearch_extra_ips:
+          - 192.168.91.100
+        elasticsearch_bootstrap_password: "Ye1x-Nf8lq-fnM07j-aA-Ki4Bys-i7ah-LLiIvwX"
+        generateca: true
+        elasticsearch_ca_filename: elastic-stack-ca.p12
+        elasticsearch_ca_password: "Elk-Ca-P4ssw0rd!"
+        elasticsearch_http_password: "Elk-Http-P4ssw0rd!"
+        elasticsearch_security_enabled: true
+        elasticsearch_https_enabled: true
+        elasticsearch_cert_propagation_hosts:
+          - machine-collector                                 # push the generated CA/cert to the logstash collector
+      - name: kibana
+    Resources:
+      memory: 4096
+      cpus: 4
+
+supervised-machines:
+  # Every target-side machine in the scenario -- everything the attacker
+  # can reach and act on. attacker-machine itself, and the supervision
+  # pair, are deliberately excluded (nothing to observe on them).
+  # finance-db03 is excluded too -- it has no PUBLIC interface at all
+  # (only internal-vault), so it has no route to the collector.
+  machine-name-list:
+    - web-front
+    - nimbus-corp
+    - ftp01
+    - app-internal
+    - salt-master
+    - salt-minion
+    - salt-minion-2
+    - dns01
+    - mqtt-broker01
+    - jmorel-ws
+
+  # Command execution (auditbeat), logs (filebeat), and network traffic
+  # (packetbeat) are what's actually relevant to observing an attacker's
+  # actions. metricbeat (CPU/memory/disk performance) isn't -- skipped.
+  sensor-default-configuration:
+    - name: packetbeat
+      logstash: true
+      logstash_hosts: 192.168.91.55
+    - name: filebeat
+      logstash: true
+      logstash_hosts: 192.168.91.55
+    - name: auditbeat
+      logstash: true
+      logstash_hosts: 192.168.91.55

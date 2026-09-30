@@ -1,0 +1,63 @@
+Networks:
+- name: PUBLIC
+  type: public
+  domain_name: public
+  domain_ext: ursidlab
+  naming:
+  - name: attacker-machine
+    ip: 192.168.56.20
+  # The local Elastic supervisor is reachable on PUBLIC so its Kibana can be browsed.
+  - name: machine-supervisor
+    ip: 192.168.56.22
+
+# First internal network: attacker-machine reaches machine-1 (SSH, leaked creds).
+- name: internal-1
+  type: private
+  domain_name: internal
+  domain_ext: internal
+  network: 192.168.93.0/24
+  gateway: 192.168.93.1
+  naming:
+  - name: attacker-machine
+    ip: 192.168.93.10
+  - name: machine-1
+    ip: 192.168.93.11
+  # Supervision stack lives on internal-1; the collector is triple-homed (see below).
+  - name: machine-collector
+    ip: 192.168.93.55
+  - name: machine-supervisor
+    ip: 192.168.93.100
+
+# Second internal network, reachable only by pivoting through the dual-homed
+# machine-1 onto machine-2 (erlang_ssh_rce).
+- name: internal-2
+  type: private
+  domain_name: internal
+  domain_ext: internal
+  network: 192.168.94.0/24
+  gateway: 192.168.94.1
+  naming:
+  - name: machine-1
+    ip: 192.168.94.11
+  - name: machine-2
+    ip: 192.168.94.12
+  # Collector's second interface so machine-2 can ship its beats locally.
+  - name: machine-collector
+    ip: 192.168.94.55
+
+# Third internal network, reachable only by pivoting through the dual-homed
+# machine-2 onto machine-3 (telnet_auth_bypass).
+- name: internal-3
+  type: private
+  domain_name: internal
+  domain_ext: internal
+  network: 192.168.95.0/24
+  gateway: 192.168.95.1
+  naming:
+  - name: machine-2
+    ip: 192.168.95.12
+  - name: machine-3
+    ip: 192.168.95.13
+  # Collector's third interface so machine-3 can ship its beats locally.
+  - name: machine-collector
+    ip: 192.168.95.55

@@ -1,0 +1,24 @@
+Title: CasinoLimit
+Description: Breizh CTF 2024 pentest challenge (INRIA / PIRAT). Reimplemented for the current URSID. Start is tbenedict:NEi9g8Bc
+Tags:
+- CTF
+- Pentest
+- Web
+Long: |
+  You play as Camille, a former Casino Limit player who wants to enforce their right
+  to be forgotten by deleting their data from the casino database.
+
+  Entry point: SSH onto the "start" machine as tbenedict (password NEi9g8Bc).
+
+  Kill-chain:
+    1. SSH password reuse: start -> meetingcam (tbenedict).
+    2. The meetingcam camera service leaks tocean's partial credentials and a
+       CVE-2023-0386 hint through camera snapshots (image + EXIF). Pivot to bastion.
+    3. Local privilege escalation on bastion via CVE-2023-0386 (OverlayFS) -> root.
+    4. Read admin mail (pentest report) -> reach the intranet casino website.
+       EJS SSTI (delimiter opt) + unrestricted file upload -> RCE into the intranet.
+    5. Delete Camille's row from the PostgreSQL database. The DEL-DB agent emails the
+       flag to admin on bastion.
+
+  Original addressing is preserved: casino_network 10.35.100.0/24 and
+  intranet_network 10.135.100.0/24.

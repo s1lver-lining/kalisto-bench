@@ -1,0 +1,49 @@
+attack_transitions:
+- from:
+    username: attacker
+    host: attacker-machine
+  to:
+    username: root
+    host: izar
+  procedure: dizquetv
+  technique: exploitation_for_client_execution
+- from:
+    username: root
+    host: izar
+  to:
+    username: root
+    host: izar
+  procedure: creds_in_steganography
+  technique: unsecure_credentials
+- from:
+    username: root
+    host: izar
+  to:
+    username: emiliano
+    host: axarquia
+  procedure: telnet
+  technique: remote_service
+- from:
+    username: emiliano
+    host: axarquia
+  to:
+    username: emiliano
+    host: axarquia
+  procedure: creds_stored_in_bash_history
+  technique: unsecure_credentials
+- from:
+    username: emiliano
+    host: axarquia
+  to:
+    username: root
+    host: axarquia
+  procedure: copyfail
+  technique: privilege_escalation
+- from:
+    username: root
+    host: axarquia
+  to:
+    username: root
+    host: secunda
+  procedure: telnet
+  technique: remote_service

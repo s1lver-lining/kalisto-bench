@@ -1,0 +1,100 @@
+collector:
+  mode: beat                                                  # supervised machines ship beats to this logstash collector
+  Machine_name: machine-collector
+  Accounts:
+    - username: root
+      password: roothAsAStr0ngP@ssw0rd
+  OS:
+    Type: linux:ubuntu
+    Version: "24.04"
+  Software:
+    - name: change_default_password
+    - name: logstash
+      project_name: "big_2"                                   # customises the elasticsearch index name
+      beats: true                                             # receive beats on the default port 5044
+      beat_ssl: true                                          # TLS between beats and logstash
+      filebeat: true                                          # add filebeat parsing rules
+      file_output: false                                      # do not also write to a local file
+      elasticsearch: true                                     # forward parsed events to elasticsearch
+      elasticsearch_hosts:
+        - https://192.168.89.100:9200/                        # elasticsearch on the supervisor's internal-1 interface
+      server_san:                                             # SAN so the collector interface is valid for the beats <-> logstash cert
+        - "DNS:machine-collector"
+        - "IP:192.168.89.55"                                  # internal-1 -- collector has no PUBLIC address at all
+  Resources:
+    memory: 4096
+    cpus: 2
+  provision_after:
+    - machine-supervisor                                      # elasticsearch must be up before logstash ships to it
+
+supervisor:
+  Machine_name: machine-supervisor
+  mode: local                                                 # provision a local Elastic supervisor (elasticsearch + kibana)
+  local-configuration:
+    Accounts:
+      - username: elastic
+        password: 3l@st1kP@ssw0rd!
+    OS:
+      Type: linux:ubuntu
+      Version: "24.04"
+    Software:
+      - name: change_default_password
+      - name: elasticsearch
+        logstash_host: machine-collector
+        # Pinned to the private, statically addressed segment for the same
+        # reason big_1 pins it: on Proxmox the PUBLIC address is DHCP/bridge
+        # assigned and does not reliably land the literal IP from
+        # networks.yml, so matching against it can fail even where it works
+        # on other backends.
+        elasticsearch_subnet: "192.168.89.0/24"
+        elasticsearch_extra_ips:
+          - 192.168.89.100
+        elasticsearch_bootstrap_password: "Qm3r-Ld9v-btT41x-cP-Ye7Nqa-w2fh-VkRoZsU"
+        generateca: true
+        elasticsearch_ca_filename: elastic-stack-ca.p12
+        elasticsearch_ca_password: "Elk-Ca-P4ssw0rd!"
+        elasticsearch_http_password: "Elk-Http-P4ssw0rd!"
+        elasticsearch_security_enabled: true
+        elasticsearch_https_enabled: true
+        elasticsearch_cert_propagation_hosts:
+          - machine-collector                                 # push the generated CA/cert to the logstash collector
+      - name: kibana
+    Resources:
+      memory: 4096
+      cpus: 4
+
+supervised-machines:
+  # Only the internal-1 machines are listed. Everything on ops-net and
+  # vault-net (ops-jump, node-01..12, vault-db) has no interface on the
+  # collector's segment and therefore no route to it -- the same reason big_1
+  # excludes finance-db03. attacker-machine and the supervision pair are
+  # excluded because there is nothing to observe on them.
+  #
+  # This is also a deliberate property of the scenario rather than a
+  # limitation: the deeper an attacker gets, the less of their activity the
+  # defensive stack sees, which is what real segmentation does to telemetry.
+  machine-name-list:
+    - wiki-corp
+    - ws-marchand
+    - mail-corp
+    - frontend-dev
+    - app-tomcat
+    - ai-lab
+    - gitea-int
+    - printer01
+    - dns02
+    - ws-lefevre
+
+  # Command execution (auditbeat), logs (filebeat), and network traffic
+  # (packetbeat) are what's relevant to observing an attacker. metricbeat
+  # (CPU/memory/disk performance) is not -- skipped.
+  sensor-default-configuration:
+    - name: packetbeat
+      logstash: true
+      logstash_hosts: 192.168.89.55
+    - name: filebeat
+      logstash: true
+      logstash_hosts: 192.168.89.55
+    - name: auditbeat
+      logstash: true
+      logstash_hosts: 192.168.89.55

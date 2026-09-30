@@ -1,0 +1,141 @@
+attacker-machine:
+  Accounts:
+  - username: attacker
+    password: attacker
+  Software:
+  - name: nmap
+  - name: dnssec_downgrade
+  - name: sshpass
+  - name: avahi
+  OS: &id001
+    Type: linux:ubuntu
+    Version: '24.04'
+heze:
+  Accounts:
+  - username: root
+    password: Runzqw7w
+  - username: akira
+    password: ZyVGOeUv
+  - username: laila
+    password: fJIssDj4
+  - username: bogdan
+    password: PTTKtb2T
+  Software:
+  - name: nmap
+  - name: dnssec_downgrade
+  - name: sshpass
+  - name: avahi
+vesper:
+  Accounts:
+  - username: root
+    password: Bfz5LJF3
+  - username: iolanda
+    password: hBGZW3M4
+  - username: bogdan
+    password: Fz6Hq2AK
+  - username: akira
+    password: 7EGHZbKo
+  - username: pirat
+    password: apirathasastrongpassword
+  Software:
+  - name: nmap
+  - name: dnssec_downgrade
+  - name: sshpass
+  - name: gcc
+  - name: avahi
+  - name: react2shell
+    app_user: pirat
+    app_name: react2shell
+    app_port: 3000
+  OS: *id001
+arequipa:
+  Accounts:
+  - username: root
+    password: 4QgTNBEj
+  - username: lena
+    password: E4o24hOS
+  - username: laila
+    password: DRET79Iq
+  - username: barnaby
+    password: JzQtJZPG
+  - username: pirat
+    password: apirathasastrongpassword
+  Software:
+  - name: nmap
+  - name: dnssec_downgrade
+  - name: sshpass
+  - name: avahi
+  - name: react2shell
+    app_user: pirat
+    app_name: react2shell
+    app_port: 3000
+artois:
+  Accounts:
+  - username: root
+    password: Bms1racj
+  - username: bogdan
+    password: P4M9DZH7
+  - username: akira
+    password: Fx6mqSFD
+  - username: emeka
+    password: GX0FZBJQ
+  - username: pirat
+    password: apirathasastrongpassword
+  Software:
+  - name: nmap
+  - name: dnssec_downgrade
+  - name: sshpass
+  - name: avahi
+  - name: creds_stored_in_bash_history
+    history_user: root
+    history_message: sshpass -p 'Runzqw7w' ssh root@heze.local
+    history_seed_commands:
+    - ls -la
+    - cd ~
+    - cd ~/projects
+    - git status
+    - ls -la
+    - cd ~
+    - cd ~/projects
+    - git status
+    - vim main.py
+    - tail -n 50 /var/log/syslog
+    - sudo systemctl status ssh
+    - ps aux | grep ssh
+    - history | tail -n 20
+  - name: react2shell
+    app_user: pirat
+    app_name: react2shell
+    app_port: 3000
+furud:
+  Accounts:
+  - username: root
+    password: D6ZgCSTY
+  - username: laila
+    password: 9GqC79l9
+  - username: joseba
+    password: B1UE8ePr
+  - username: iolanda
+    password: 5FxgmV2A
+  Software:
+  - name: nmap
+  - name: dnssec_downgrade
+  - name: sshpass
+  - name: avahi
+  OS: *id001
+rho:
+  Accounts:
+  - username: root
+    password: faCLI71f
+  - username: lena
+    password: NYmphNcW
+  - username: akira
+    password: I9rQWOwj
+  - username: laila
+    password: auQLKX78
+  Software:
+  - name: nmap
+  - name: dnssec_downgrade
+  - name: sshpass
+  - name: avahi
+  OS: *id001

@@ -1,0 +1,129 @@
+attacker-machine:
+  Accounts:
+  - username: attacker
+    password: attacker
+  Software:
+  - name: nmap
+  - name: dnssec_downgrade
+  - name: sshpass
+  - name: avahi
+  OS: &id001
+    Type: linux:ubuntu
+    Version: '24.04'
+quasar:
+  provision_after: [machine-collector]
+  Accounts:
+  - username: root
+    password: esO4mDuv
+  - username: iara
+    password: uiSQGHSm
+  - username: kilian
+    password: Ir6F7G71
+  - username: karsten
+    password: pATOAVnV
+  Software:
+  - name: nmap
+  - name: dnssec_downgrade
+  - name: sshpass
+  - name: avahi
+  OS: *id001
+secunda:
+  provision_after: [machine-collector]
+  Accounts:
+  - username: root
+    password: 6FmQB2KY
+  - username: amaru
+    password: fPXRFAzB
+  - username: asier
+    password: nfbsh2He
+  - username: iara
+    password: cG6C5hSZ
+  Software:
+  - name: nmap
+  - name: dnssec_downgrade
+  - name: sshpass
+  - name: avahi
+  OS: *id001
+axarquia:
+  provision_after: [machine-collector]
+  Accounts:
+  - username: root
+    password: p03sgmsv
+  - username: corentin
+    password: oNJlz751
+  - username: emiliano
+    password: l4gA0WU1
+  - username: laurens
+    password: KUmhF2wM
+  Software:
+  - name: nmap
+  - name: dnssec_downgrade
+  - name: sshpass
+  - name: avahi
+  - name: gcc
+  - name: creds_stored_in_bash_history
+    history_user: emiliano
+    history_message: sshpass -p '6FmQB2KY' ssh root@secunda.local
+    history_seed_commands:
+    - ls -la
+    - cd ~
+    - cd ~/projects
+    - git status
+    - ls -la
+    - cd ~
+    - cd ~/projects
+    - git status
+    - vim main.py
+    - tail -n 50 /var/log/syslog
+    - sudo systemctl status ssh
+    - ps aux | grep ssh
+    - history | tail -n 20
+  OS: *id001
+izar:
+  provision_after: [machine-collector]
+  Accounts:
+  - username: root
+    password: ekcwWhHk
+  - username: kilian
+    password: OvA86jXQ
+  - username: emiliano
+    password: dmYgV9z3
+  - username: iara
+    password: spNYvWgt
+  Software:
+  - name: nmap
+  - name: dnssec_downgrade
+  - name: sshpass
+  - name: avahi
+  - name: creds_in_steganography
+    stego_user: root
+    stego_image_relpath: Pictures/pirat.jpg
+    stego_cover_image_filename: pirat.jpg
+    stego_hidden_secret: 'password: l4gA0WU1'
+    stego_hidden_content: '# internal notes - do not share
+
+      host: axarquia.local
+
+      login: emiliano
+
+      password: l4gA0WU1
+
+      '
+  OS: *id001
+syrma:
+  provision_after: [machine-collector]
+  Accounts:
+  - username: root
+    password: Tx5itg2N
+  - username: laurens
+    password: nJejFm6t
+  - username: iara
+    password: LSjEfVxr
+  - username: asier
+    password: IQ2xQJjm
+  Software:
+  - name: nmap
+  - name: dnssec_downgrade
+  - name: sshpass
+  - name: avahi
+  OS: *id001

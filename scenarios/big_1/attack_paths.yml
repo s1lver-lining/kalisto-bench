@@ -1,0 +1,97 @@
+attack_transitions:
+  # --- attacker's own machine, external to the target infra ---
+  # SSRF leaks the token remotely -- no shell on web-front is ever
+  # gained (ssrf_internal_leak is "kind: gathering"), so the attacker
+  # stays positioned on their own machine throughout.
+  - from:
+      username: attacker
+      host: attacker-machine
+      start: yes
+    to:
+      username: attacker
+      host: web-front
+    procedure: ssrf_internal_leak
+    technique: unsecure_credentials
+
+  # --- internal tier: the leaked token IS opsbot's password ---
+  - from:
+      username: attacker
+      host: attacker-machine
+    to:
+      username: opsbot
+      host: app-internal
+    procedure: sshd
+    technique: remote_service
+
+  - from:
+      username: opsbot
+      host: app-internal
+    to:
+      username: root
+      host: app-internal
+    procedure: docker_socket_escape
+    technique: privilege_escalation
+
+  # --- git history on app-internal: recon, not a credential handoff ---
+  # No shared variable or consumed secret connects this transition to
+  # the next one -- the link is narrative, not mechanical. The leak
+  # reveals SALT_MASTER_HOST (real recon value: confirms salt-master
+  # exists and where) alongside SALT_API_KEY, which looks like the
+  # credential that unlocks it but isn't: salt_master_rce is pre-auth
+  # (CVE-2020-11651/11652), nothing on the master ever checks that key.
+  # Deliberate: a plausible-looking dead end sitting right next to the
+  # real lead, in the same file.
+  - from:
+      username: root
+      host: app-internal
+    to:
+      username: root
+      host: app-internal
+    procedure: creds_in_git_history
+    technique: unsecure_credentials
+
+  # --- SaltStack: pre-auth RCE, then whole-fleet reach ---
+  - from:
+      username: attacker
+      host: attacker-machine
+    to:
+      username: root
+      host: salt-master
+    procedure: salt_master_rce
+    technique: remote_code_execution
+
+  # root@salt-master already has arbitrary command execution on every
+  # minion via the master's own reach (see salt_master_rce's fleet-wide
+  # primitive) -- not a separate vulnerability, just the same compromise
+  # used against a second target. salt-minion's second interface
+  # (internal-vault) is what actually gates finance-db03.
+  - from:
+      username: root
+      host: salt-minion
+    to:
+      username: fleet-admin
+      host: finance-db03
+    procedure: sshd
+    technique: remote_service
+
+  - from:
+      username: fleet-admin
+      host: finance-db03
+    to:
+      username: root
+      host: finance-db03
+    procedure: sudo
+    technique: privilege_escalation
+
+  # --- dead end: real RCE, reachable directly, leads nowhere further ---
+  # ending_user is postgres (COPY TO PROGRAM runs as the PostgreSQL
+  # service account, not "attacker") -- matches ftp01's Accounts entry
+  # and demo-proftpd's own attack_paths.yml.
+  - from:
+      username: attacker
+      host: attacker-machine
+    to:
+      username: postgres
+      host: ftp01
+    procedure: proftpd_mod_sql_rce
+    technique: remote_code_execution

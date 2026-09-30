@@ -1,0 +1,18 @@
+Title: small_3
+Description: Random scenario (git-history creds -> SSH -> dizquetv exploit) with an Elastic supervision stack added.
+Tags:
+- Benchmark
+- Random
+- Supervision
+Long: |
+  Benchmark member. The attacker recovers sheliak credentials from a git history
+  on the attacker machine, SSHes into sheliak as beatrix, then pivots to antares
+  and gains root via the dizquetv exploitation-for-client-execution technique.
+
+  The attacker (192.168.56.10) and the Elastic supervisor (192.168.56.12) are
+  exposed on PUBLIC; every target host lives on the private subnet_64.
+
+  A local Elastic supervision stack is attached: machine-collector receives beats
+  from the supervised target machines (antares, sheliak, propus) on subnet_64
+  (192.168.64.55) and forwards to elasticsearch on machine-supervisor
+  (192.168.64.100), whose Kibana is browsable on PUBLIC (192.168.56.12).
