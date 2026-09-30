@@ -136,5 +136,5 @@ Not every run finishes cleanly. In the same scenario, a different run ends with:
 ```
 
 There the provider's content filter halted the engagement before any goal was
-reached — one of the 100 refusals discussed in [`RESULTS.md`](RESULTS.md). The
-`rejection` / `refusal_reason` fields are how those are identified in the data.
+reached. The `rejection` / `refusal_reason` fields are how refusals are
+identified in the data.

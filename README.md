@@ -21,7 +21,6 @@ into two benchmarks:
 | [`scenarios/`](scenarios/) | The raw URSID scenario specification files — one directory per scenario. These are the source of truth: URSID deploys the cyber range directly from them. |
 | [`SCENARIOS.md`](SCENARIOS.md) | Human-readable details for every scenario: attack path, decoys, goals, run caps, and the techniques used. |
 | [`TECHNIQUES.md`](TECHNIQUES.md) | The full technique catalogue (paper Appendix F): CVE, affected software, and a one-line description for each of the 30 techniques used on an attack path. |
-| [`RESULTS.md`](RESULTS.md) | A recap of the headline evaluation results. |
 | [`RUNNING.md`](RUNNING.md) | How to deploy and run a scenario with URSID, end to end. |
 | [`example-run/`](example-run/) | One complete run report and [`EXAMPLE-RUN.md`](EXAMPLE-RUN.md) walking through it. |
 
