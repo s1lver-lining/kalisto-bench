@@ -2,7 +2,7 @@
 
 Companion data for the paper *"How far do they get?"*. This release lets a
 reader inspect every scenario an agent faces, the full vulnerability/technique
-catalogue behind them, a recap of the headline results, and a single worked run
+catalogue behind them, and a single worked run
 end to end.
 
 The benchmark evaluates LLM pentest agents on **10 reproducible scenarios**
